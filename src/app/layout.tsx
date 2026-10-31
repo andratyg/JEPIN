@@ -15,6 +15,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://japin.naraandratyaga.my.id"),
   title: "JEPIN (Jejak Pintar) — Smart Consumption & Repurchase Tracker",
   description:
     "Kurasi konsumsi pribadi. Catat barang zonk, verifikasi kelayakan beli ulang, dan selamatkan anggaran belanja mikro yang sia-sia.",

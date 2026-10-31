@@ -100,6 +100,7 @@ export default function LoginPage() {
             data: {
               full_name: name.trim(),
             },
+            emailRedirectTo: `${origin}/auth/callback`,
           },
         });
 
