@@ -15,9 +15,14 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Jejak Belanja Pintar — Smart Consumption Tracker",
+  title: "JEPIN (Jejak Pintar) — Smart Consumption & Repurchase Tracker",
   description:
-    "Kurasi konsumsi pribadi. Catat, evaluasi, dan verifikasi barang yang layak dibeli ulang.",
+    "Kurasi konsumsi pribadi. Catat barang zonk, verifikasi kelayakan beli ulang, dan selamatkan anggaran belanja mikro yang sia-sia.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
