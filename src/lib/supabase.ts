@@ -6,7 +6,7 @@ const supabaseUrl =
 
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  "sb_publishable_dummy_key_for_build_fallback";
+  "sb_publishable_n_httt3K-rKcnTKHXy7uGg_6rSZKa0q";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

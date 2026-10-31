@@ -89,9 +89,14 @@ export default function DashboardPage() {
 
   // STRICT AUTH GUARD: NO GUEST MODE
   useEffect(() => {
+    let isMounted = true;
+
     async function verifyAuth() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!isMounted) return;
         if (!session?.user) {
           router.replace("/login");
           return;
@@ -99,22 +104,30 @@ export default function DashboardPage() {
         setCurrentUser(session.user);
         setAuthChecking(false);
       } catch (err) {
+        if (!isMounted) return;
         console.error("Auth check failed:", err);
         router.replace("/login");
       }
     }
     verifyAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      if (event === "SIGNED_OUT") {
+        setCurrentUser(null);
         router.replace("/login");
-      } else {
+      } else if (session?.user) {
         setCurrentUser(session.user);
         setAuthChecking(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   const handleSignOut = async () => {

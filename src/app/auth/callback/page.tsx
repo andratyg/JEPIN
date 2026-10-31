@@ -54,7 +54,7 @@ export default function AuthCallbackPage() {
             if (isMounted) {
               setStatusMessage("Berhasil masuk! Mengarahkan ke dashboard...");
             }
-            router.replace("/dashboard");
+            window.location.href = "/dashboard";
             return;
           }
         }
@@ -77,7 +77,7 @@ export default function AuthCallbackPage() {
         }
 
         if (session) {
-          router.replace("/dashboard");
+          window.location.href = "/dashboard";
         } else {
           router.replace("/login");
         }
