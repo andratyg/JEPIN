@@ -74,9 +74,12 @@ export default function DashboardPage() {
   const [formImagePreview, setFormImagePreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form State for new category
+  // Form State for category management
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("🏷️");
+  const [categoryModalTab, setCategoryModalTab] = useState<"list" | "add">("list");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryNameInput, setEditCategoryNameInput] = useState("");
 
   // Form State for Evaluation Popup (Worth to buy or Zonk with notes)
   const [evalDecision, setEvalDecision] = useState<"worth" | "zonk">("worth");
@@ -281,7 +284,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Handlers
+  // Handlers for Category Management
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
@@ -299,7 +302,65 @@ export default function DashboardPage() {
       }
     }
     setNewCategoryName("");
-    setIsCategoryModalOpen(false);
+    setCategoryModalTab("list");
+  };
+
+  const handleDeleteCategory = async (catName: string) => {
+    if (!window.confirm(`Yakin ingin menghapus kategori "${catName}"?`)) return;
+
+    const remaining = categories.filter((c) => c !== catName);
+    setCategories(remaining);
+
+    if (selectedCategory === catName) {
+      setSelectedCategory("Semua");
+    }
+
+    const fallbackCat = remaining[0] || "Umum";
+    const updatedProducts = products.map((p) =>
+      p.category === catName ? { ...p, category: fallbackCat } : p
+    );
+    setProducts(updatedProducts);
+
+    showToast(`Kategori "${catName}" berhasil dihapus.`);
+
+    // Sync to Supabase
+    try {
+      await supabase.from("categories").delete().eq("name", catName);
+      await supabase.from("products").update({ category: fallbackCat }).eq("category", catName);
+    } catch (err) {
+      console.warn("Supabase cat delete fallback:", err);
+    }
+  };
+
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) {
+      setEditingCategory(null);
+      return;
+    }
+
+    const updatedCategories = categories.map((c) => (c === oldName ? trimmed : c));
+    setCategories(updatedCategories);
+
+    if (selectedCategory === oldName) {
+      setSelectedCategory(trimmed);
+    }
+
+    const updatedProducts = products.map((p) =>
+      p.category === oldName ? { ...p, category: trimmed } : p
+    );
+    setProducts(updatedProducts);
+    setEditingCategory(null);
+
+    showToast(`Kategori diperbarui: "${trimmed}"`);
+
+    // Sync to Supabase
+    try {
+      await supabase.from("categories").update({ name: trimmed }).eq("name", oldName);
+      await supabase.from("products").update({ category: trimmed }).eq("category", oldName);
+    } catch (err) {
+      console.warn("Supabase cat rename fallback:", err);
+    }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -910,10 +971,14 @@ export default function DashboardPage() {
               })}
 
               <button
-                onClick={() => setIsCategoryModalOpen(true)}
-                className="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border border-dashed border-espresso/30 text-espresso-light hover:text-espresso hover:border-espresso bg-linen/50 transition-colors flex items-center gap-1"
+                onClick={() => {
+                  setCategoryModalTab("list");
+                  setIsCategoryModalOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border border-dashed border-espresso/30 text-espresso-light hover:text-espresso hover:border-espresso bg-linen/50 transition-colors flex items-center gap-1.5"
+                title="Kelola, tambah, atau hapus kategori"
               >
-                <span>+ Kategori Baru</span>
+                <span>⚙️ Kelola Kategori</span>
               </button>
             </div>
 
@@ -1732,88 +1797,196 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* POPUP 3: MODAL TAMBAH KATEGORI BARU */}
+      {/* POPUP 3: MODAL KELOLA KATEGORI (TAMBAH, UBAH, HAPUS) */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-espresso/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-linen rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-espresso/20">
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-espresso/10">
+          <div className="bg-linen rounded-3xl max-w-md w-full p-6 shadow-2xl border border-espresso/20">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-espresso/10">
               <h3 className="font-serif font-bold text-lg text-espresso">
-                Tambah Kategori Baru
+                Kelola Kategori
               </h3>
               <button
-                onClick={() => setIsCategoryModalOpen(false)}
+                onClick={() => {
+                  setIsCategoryModalOpen(false);
+                  setEditingCategory(null);
+                }}
                 className="w-7 h-7 rounded-full bg-ecru flex items-center justify-center text-espresso font-bold hover:bg-espresso hover:text-linen transition-colors text-xs"
               >
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleAddCategory} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">
-                  Pilih Ikon / Emoji
-                </label>
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {[
-                    "🍵",
-                    "📚",
-                    "👟",
-                    "🎮",
-                    "🌿",
-                    "👕",
-                    "🍷",
-                    "📱",
-                    "🍞",
-                    "🕯️",
-                    "🎨",
-                    "🚲",
-                  ].map((emo) => (
-                    <button
-                      key={emo}
-                      type="button"
-                      onClick={() => setNewCategoryEmoji(emo)}
-                      className={`w-9 h-9 rounded-lg border text-lg flex items-center justify-center transition-all ${
-                        newCategoryEmoji === emo
-                          ? "bg-sage/20 border-sage scale-110 shadow-xs"
-                          : "bg-ecru border-espresso/10 hover:border-espresso/30"
-                      }`}
-                    >
-                      {emo}
-                    </button>
-                  ))}
+            {/* TAB SELECTOR */}
+            <div className="flex gap-2 p-1 bg-ecru rounded-xl mb-4 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setCategoryModalTab("list")}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${
+                  categoryModalTab === "list"
+                    ? "bg-espresso text-linen shadow-xs"
+                    : "text-espresso-light hover:text-espresso"
+                }`}
+              >
+                Daftar Kategori ({categories.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryModalTab("add")}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${
+                  categoryModalTab === "add"
+                    ? "bg-espresso text-linen shadow-xs"
+                    : "text-espresso-light hover:text-espresso"
+                }`}
+              >
+                + Tambah Baru
+              </button>
+            </div>
+
+            {categoryModalTab === "list" ? (
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                {categories.length === 0 ? (
+                  <p className="text-xs text-espresso-light text-center py-6">
+                    Belum ada kategori kustom. Klik "+ Tambah Baru".
+                  </p>
+                ) : (
+                  categories.map((cat) => {
+                    const count = products.filter((p) => p.category === cat).length;
+                    const isEditing = editingCategory === cat;
+
+                    return (
+                      <div
+                        key={cat}
+                        className="flex items-center justify-between p-2.5 bg-ecru/70 rounded-xl border border-espresso/10"
+                      >
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 flex-1 mr-2">
+                            <input
+                              type="text"
+                              value={editCategoryNameInput}
+                              onChange={(e) => setEditCategoryNameInput(e.target.value)}
+                              className="flex-1 px-2.5 py-1 text-xs bg-linen border border-espresso/20 rounded-lg text-espresso focus:outline-none focus:border-sage"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRenameCategory(cat, editCategoryNameInput)}
+                              className="px-2 py-1 bg-sage text-white text-[10px] font-bold rounded-md hover:bg-sage-deep"
+                            >
+                              Simpan
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingCategory(null)}
+                              className="px-2 py-1 bg-espresso/10 text-espresso text-[10px] font-semibold rounded-md hover:bg-espresso/20"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-espresso">
+                                {cat}
+                              </span>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-espresso/10 text-espresso-light">
+                                {count} barang
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCategory(cat);
+                                  setEditCategoryNameInput(cat);
+                                }}
+                                className="px-2 py-1 text-[11px] font-semibold text-espresso-light hover:text-espresso rounded hover:bg-linen transition-colors"
+                                title="Ubah nama"
+                              >
+                                ✏️ Ubah
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat)}
+                                className="px-2 py-1 text-[11px] font-semibold text-terracotta hover:text-red-700 rounded hover:bg-terracotta/10 transition-colors"
+                                title="Hapus kategori"
+                              >
+                                🗑️ Hapus
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleAddCategory} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">
+                    Pilih Ikon / Emoji
+                  </label>
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {[
+                      "🍵",
+                      "📚",
+                      "👟",
+                      "🎮",
+                      "🌿",
+                      "👕",
+                      "🍷",
+                      "📱",
+                      "🍞",
+                      "🕯️",
+                      "🎨",
+                      "🚲",
+                    ].map((emo) => (
+                      <button
+                        key={emo}
+                        type="button"
+                        onClick={() => setNewCategoryEmoji(emo)}
+                        className={`w-9 h-9 rounded-lg border text-lg flex items-center justify-center transition-all ${
+                          newCategoryEmoji === emo
+                            ? "bg-sage/20 border-sage scale-110 shadow-xs"
+                            : "bg-ecru border-espresso/10 hover:border-espresso/30"
+                        }`}
+                      >
+                        {emo}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">
-                  Nama Kategori
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Contoh: Matcha Artisan, Sneakers, Buku"
-                  className="w-full px-3.5 py-2.5 bg-ecru border border-espresso/20 rounded-xl text-sm text-espresso focus:outline-none focus:border-sage"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-bold text-espresso uppercase tracking-wider mb-1.5">
+                    Nama Kategori
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Contoh: Matcha Artisan, Sneakers, Buku"
+                    className="w-full px-3.5 py-2.5 bg-ecru border border-espresso/20 rounded-xl text-sm text-espresso focus:outline-none focus:border-sage"
+                  />
+                </div>
 
-              <div className="pt-2 flex gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="flex-1 py-2 rounded-xl border border-espresso/20 text-xs font-semibold hover:bg-ecru"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 rounded-xl bg-sage hover:bg-sage-deep text-white font-bold text-xs"
-                >
-                  Tambah Kategori
-                </button>
-              </div>
-            </form>
+                <div className="pt-2 flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryModalTab("list")}
+                    className="flex-1 py-2 rounded-xl border border-espresso/20 text-xs font-semibold hover:bg-ecru"
+                  >
+                    Kembali
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 rounded-xl bg-sage hover:bg-sage-deep text-white font-bold text-xs"
+                  >
+                    Tambah Kategori
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
