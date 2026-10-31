@@ -39,7 +39,10 @@ export default function LoginPage() {
     try {
       setErrorMessage(null);
       setGoogleLoading(true);
-      const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const origin =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : "https://japin.naraandratyaga.my.id";
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
