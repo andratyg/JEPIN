@@ -35,87 +35,7 @@ const DEFAULT_CATEGORIES = [
   "🌸 Parfum",
 ];
 
-const INITIAL_PRODUCTS: ProductItem[] = [
-  {
-    id: "p1",
-    name: "Kopi Toraja Sapan Specialty",
-    category: "☕ Biji Kopi",
-    state: "repurchase",
-    price: 89000,
-    imageUrl: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=600&q=80",
-    score: 9.6,
-    repurchaseCount: 4,
-    sensoryNotes: "Medium roast. Notes plum manis, dark chocolate finish tebal, acidity bersih. Seduh V60 rasio 1:15 suhu 92°C.",
-    dateAdded: "28 Okt 2024",
-    timestamp: 1729000000000,
-  },
-  {
-    id: "p2",
-    name: "Decant Sauvage EDT 10ml",
-    category: "🌸 Parfum",
-    state: "zonk",
-    price: 45000,
-    imageUrl: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80",
-    score: 3.2,
-    zonkTags: ["SPL Lemah", "Aroma Apek", "Bikin Pusing"],
-    sensoryNotes: "Dry down flat setelah 2 jam. Terlalu sintetis di cuaca lembap tropis. Proyeksi mengecewakan.",
-    savedAmount: 45000,
-    dateAdded: "15 Okt 2024",
-    timestamp: 1728500000000,
-  },
-  {
-    id: "p3",
-    name: "Somethinc Niacinamide + Moisture",
-    category: "🧴 Skincare",
-    state: "testing",
-    price: 79000,
-    imageUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80",
-    testingDays: "Hari ke-6 dari 14 hari observasi",
-    testingProgress: 42,
-    sensoryNotes: "pH 5.5 seimbang, tekstur gel cair cepat meresap. Belum ada tanda komedo atau iritasi kulit.",
-    dateAdded: "25 Okt 2024",
-    timestamp: 1729500000000,
-  },
-  {
-    id: "p4",
-    name: "Keripik Tempe Artisan Malang",
-    category: "🍿 Makanan & Snack",
-    state: "repurchase",
-    price: 25000,
-    imageUrl: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=600&q=80",
-    score: 9.2,
-    repurchaseCount: 3,
-    sensoryNotes: "Irisan tipis ekstra renyah, minyak tiris sempurna, aroma ketumbar gurih tanpa MSG berlebihan.",
-    dateAdded: "10 Okt 2024",
-    timestamp: 1728000000000,
-  },
-  {
-    id: "p5",
-    name: "Sony WF-1000XM5 ANC",
-    category: "🎧 Gadget & Audio",
-    state: "wishlist",
-    price: 3299000,
-    imageUrl: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80",
-    coolingDays: "Jeda 7 Hari — Sisa 3 Hari",
-    sensoryNotes: "Target uji: kenyamanan eartips foam untuk telinga kecil & performa isolasi saat commute KRL.",
-    dateAdded: "29 Okt 2024",
-    timestamp: 1729800000000,
-  },
-  {
-    id: "p6",
-    name: "Sunscreen UV Moisture Milk SPF50",
-    category: "🧴 Skincare",
-    state: "zonk",
-    price: 52000,
-    imageUrl: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
-    score: 4.0,
-    zonkTags: ["White Cast", "Terlalu Berminyak"],
-    sensoryNotes: "White cast sangat kentara di kulit sawo matang, pilling saat ditimpa bedak, terasa gerah.",
-    savedAmount: 52000,
-    dateAdded: "12 Okt 2024",
-    timestamp: 1728200000000,
-  },
-];
+const INITIAL_PRODUCTS: ProductItem[] = [];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -211,11 +131,18 @@ export default function DashboardPage() {
 
   // 1. Initial Load & Supabase Fetch
   useEffect(() => {
-    // Fallback load from localStorage
+    // Fallback load from localStorage without mock data
     try {
-      const savedProds = localStorage.getItem("jepin_products_v3");
-      if (savedProds) setProducts(JSON.parse(savedProds));
-      const savedCats = localStorage.getItem("jepin_categories_v3");
+      const savedProds = localStorage.getItem("jepin_products_v4") || localStorage.getItem("jepin_products_v3");
+      if (savedProds) {
+        const parsed = JSON.parse(savedProds);
+        const cleaned = Array.isArray(parsed)
+          ? parsed.filter((p: ProductItem) => !["p1", "p2", "p3", "p4", "p5", "p6"].includes(p.id))
+          : [];
+        setProducts(cleaned);
+        localStorage.setItem("jepin_products_v4", JSON.stringify(cleaned));
+      }
+      const savedCats = localStorage.getItem("jepin_categories_v4") || localStorage.getItem("jepin_categories_v3");
       if (savedCats) setCategories(JSON.parse(savedCats));
     } catch {}
 
@@ -276,13 +203,13 @@ export default function DashboardPage() {
   // Save to localStorage as resilient offline cache
   useEffect(() => {
     try {
-      localStorage.setItem("jepin_products_v3", JSON.stringify(products));
+      localStorage.setItem("jepin_products_v4", JSON.stringify(products));
     } catch {}
   }, [products]);
 
   useEffect(() => {
     try {
-      localStorage.setItem("jepin_categories_v3", JSON.stringify(categories));
+      localStorage.setItem("jepin_categories_v4", JSON.stringify(categories));
     } catch {}
   }, [categories]);
 

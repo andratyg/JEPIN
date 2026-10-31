@@ -19,7 +19,9 @@ export const metadata: Metadata = {
   description:
     "Kurasi konsumsi pribadi. Catat barang zonk, verifikasi kelayakan beli ulang, dan selamatkan anggaran belanja mikro yang sia-sia.",
   icons: {
-    icon: "/icon.svg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
     shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
